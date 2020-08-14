@@ -32,16 +32,16 @@ class GameData:
             batched_data = open(batched, 'r')
             self.player_info_table = json.loads(batched_data.read())
             batched_data.close()
-    
+
         self.fill_logscore_table()
-    
+
     def get_players(self):
-    	players = []
-    	
-    	for player in self.player_info_table:
-    		players.append(player)
-    	
-    	return players
+        players = []
+
+        for player in self.player_info_table:
+            players.append(player)
+
+        return players
 
     def get_avg_logscore(self, player, role):
         if player not in self.player_info_table:
@@ -128,7 +128,7 @@ class GameData:
         if games < 1: return 1
 
         ls_weight = 1
-        wr_weight = 1 * (1 - (1 / math.sqrt(games)))
+        wr_weight = 1 * (1 / (1 + math.exp(0.2 * (17.5 - games))))
 
         ls = self.get_rel_avg_logscore(player, role)
         wr = self.get_winrate(player, role) / 0.5
@@ -137,14 +137,20 @@ class GameData:
     def get_player_ranking_rating(self, player_rating):
         return player_rating.get('rating')
 
-    def sort_ratings(self, players):
+    def sort_ratings(self, players, include_all=False):
         picks = []
         for player in players:
-            for role in self.get_roles_played(player):
-                picks.append({'player': player, 'role': role, 
+            if include_all:
+                for role in ['demoman', 'pocket_scout', 'pocket', 'medic', 'roamer', 'flank_scout']:
+                    picks.append({'player': player, 'role': role,
                               'rating': self.get_rel_avg_logscore(player, role)
                              })
-                             
+            else:
+                for role in self.get_roles_played(player):
+                    picks.append({'player': player, 'role': role,
+                              'rating': self.get_rel_avg_logscore(player, role)
+                             })
+
         picks.sort(key=self.get_player_ranking_rating, reverse=True)
         return picks
 
@@ -163,7 +169,7 @@ class GameData:
         for team in teams:
             for player in log_data[team]['players']:
                 plobj = {}
-    
+
                 if player not in self.player_info_table:
                     self.player_info_table[player] = {}
                     self.player_info_table[player]['pocket'] = {}
@@ -172,15 +178,15 @@ class GameData:
                     self.player_info_table[player]['flank_scout'] = {}
                     self.player_info_table[player]['pocket_scout'] = {}
                     self.player_info_table[player]['demoman'] = {}
-    
+
                 plobj = self.player_info_table[player]
                 role = log_data[team]['players'][player]['role']
                 jsobj = plobj[role]
-    
+
                 result = 0
                 if team == winning_team: result = 1
                 elif red_score == blu_score: result = 0.5
-    
+
                 raw_log_score = log_data[team]['players'][player]['logscore']
 
                 if 'games' in self.player_info_table[player][role]:
@@ -217,7 +223,7 @@ def get_class(player_json):
             tfc == 'demoman'):
             tf_class = tfc
         index = index + 1
-        
+
     return tf_class
 
 # Calculate log score for player given class
@@ -239,12 +245,12 @@ def log_score(log_json, tf_class, player_json, player):
         for medic in log_json['healspread']:
             medichealjson = log_json['healspread'][medic]
             medicplayerjson = log_json['players'][medic]
-    
+
             if player in medichealjson:
                 healers += 1
                 totalhealpc += (medichealjson[player] / medicplayerjson['heal'])
                 break
-    
+
         healpc = totalhealpc / healers
         raw_log_score = (dmg / (dmgtaken + 25 * deaths + 5 * healpc))
 
@@ -281,32 +287,32 @@ def parse_log(log_json):
         if tf_class == 'soldier':
             for otherplayer in medichealjson:
                 if otherplayer == player: continue
-        
+
                 tfc_other = get_class(log_json['players'][otherplayer])
-        
+
                 if tfc_other == 'soldier':
                     if medichealjson[otherplayer] > medichealjson[player]:
                         role = 'roamer'
                     else:
                         role = 'pocket'
-    
+
             if role == '': role = 'pocket'
         elif tf_class == 'scout':
             for otherplayer in medichealjson:
                 if otherplayer == player: continue
-        
+
                 tfc_other = get_class(log_json['players'][otherplayer])
-        
+
                 if tfc_other == 'scout':
                     if medichealjson[otherplayer] > medichealjson[player]:
                         role = 'flank_scout'
                     else:
                         role = 'pocket_scout'
-    
+
             if role == '':  role = 'pocket_scout'
         else:
             role = tf_class
-    
+
         if pljson['team'] == 'Red':
             log_data['red']['players'][player] = { 'role': role,
                                                    'logscore': raw_log_score }
