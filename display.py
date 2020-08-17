@@ -51,7 +51,7 @@ class Display:
         print('Highest rating:', plname, 'with a rating of', rating, 'on', role)
 
     def pick_dmix_teams(self, players):
-        player_list = self.gamedata.sort_ratings(players, True)
+        player_list = self.gamedata.sort_ratings(players, True, True)
 
         blue_roles = ['medic']
         red_roles = ['medic']
@@ -84,3 +84,31 @@ class Display:
                 team_picking = blue_roles
                 team_name = 'BLUE'
             picks = picks + 1
+
+    def pick_dmix_teams_noroles(self, players):
+        player_list = self.gamedata.sort_ratings(players, False)
+
+        players_picked = []
+        players_max = 10
+        picks = 0
+
+        team_name = 'BLUE'
+        looking = True
+
+        while picks < 10:
+            looking = True
+            player_picked = ''
+
+            for pick in player_list:
+                if looking and pick['player'] not in players_picked:
+                    looking = False
+                    players_picked.append(pick['player'])
+                    print(team_name, 'picks',
+                          nicknames.get_name(self.name_json, pick['player']))
+
+            if team_name == 'BLUE':
+                team_name = 'RED'
+            else:
+                team_name = 'BLUE'
+            picks = picks + 1
+

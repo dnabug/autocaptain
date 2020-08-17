@@ -17,7 +17,7 @@ def main():
     gamedata = logs.GameData('logs.txt', 'batched.json', updated)
     disp = display.Display(gamedata, name_json)
 
-    disp.player_synopsis(nicknames.get_steamid(name_json, 'eqstaz'))
+    disp.player_synopsis(nicknames.get_steamid(name_json, 'pesky'))
 
     player_pool = [
         nicknames.get_steamid(name_json, 'Monkey'),
@@ -32,7 +32,7 @@ def main():
         nicknames.get_steamid(name_json, 'anonimo')
     ]
 
-    disp.pick_dmix_teams(player_pool)
+    disp.pick_dmix_teams_noroles(player_pool)
 
 if __name__ == "__main__":
     main()

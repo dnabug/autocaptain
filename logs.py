@@ -134,21 +134,35 @@ class GameData:
         wr = self.get_winrate(player, role) / 0.5
         return round((ls_weight * ls + wr_weight * wr) / (ls_weight + wr_weight), 3)
 
+    def avg_rating(self, player):
+        roles = ['pocket_scout', 'flank_scout', 'roamer', 'pocket', 'demoman', 'medic']
+        num = 0
+        den = 0
+        for role in roles:
+            g = self.get_games(player, role)
+            if g < 1: g = 1
+            num = num + g * self.rating(player, role)
+            den = den + g
+
+        return num / den
+
     def get_player_ranking_rating(self, player_rating):
         return player_rating.get('rating')
 
-    def sort_ratings(self, players, include_all=False):
+    def sort_ratings(self, players, pick_classes=False, include_all=False):
         picks = []
         for player in players:
-            if include_all:
+            if not pick_classes:
+                picks.append({'player': player, 'rating': self.avg_rating(player)})
+            elif include_all:
                 for role in ['demoman', 'pocket_scout', 'pocket', 'medic', 'roamer', 'flank_scout']:
                     picks.append({'player': player, 'role': role,
-                              'rating': self.get_rel_avg_logscore(player, role)
+                              'rating': self.rating(player, role)
                              })
             else:
                 for role in self.get_roles_played(player):
                     picks.append({'player': player, 'role': role,
-                              'rating': self.get_rel_avg_logscore(player, role)
+                              'rating': self.rating(player, role)
                              })
 
         picks.sort(key=self.get_player_ranking_rating, reverse=True)
